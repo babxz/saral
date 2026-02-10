@@ -1,6 +1,6 @@
 """
 SARAL-TN Streamlit App
-Simplified version for deployment
+Fixed version - buttons outside forms
 """
 
 import streamlit as st
@@ -54,6 +54,10 @@ st.markdown("""
 # Initialize session
 if 'user_id' not in st.session_state:
     st.session_state.user_id = str(uuid.uuid4())[:8]
+if 'processing_done' not in st.session_state:
+    st.session_state.processing_done = False
+if 'challan_generated' not in st.session_state:
+    st.session_state.challan_generated = False
 
 # Header
 st.markdown('<p class="main-header">🚦 SARAL-TN</p>', unsafe_allow_html=True)
@@ -81,6 +85,7 @@ tab1, tab2, tab3 = st.tabs(["🚨 Report Violation", "📈 Dashboard", "🏆 Lea
 with tab1:
     st.header("📹 Report Traffic Violation")
     
+    # Form for inputs only
     with st.form("violation_report"):
         col1, col2 = st.columns(2)
         with col1:
@@ -96,47 +101,58 @@ with tab1:
         
         gps_consent = st.checkbox("I confirm this video was recorded at the violation location", value=True)
         
+        # Submit button INSIDE form (this is OK)
         submitted = st.form_submit_button("🚀 Process Violation", use_container_width=True)
+    
+    # Processing happens AFTER form, OUTSIDE form
+    if submitted:
+        if not phone or len(phone) != 10:
+            st.error("Please enter valid 10-digit mobile number")
+        elif not uploaded_file:
+            st.error("Please upload a video")
+        else:
+            # Simulate processing
+            with st.spinner("🔍 AI Processing... (~45 seconds)"):
+                import time
+                time.sleep(2)  # Simulate AI processing
+                
+                # Store in session state
+                st.session_state.processing_done = True
+                st.session_state.phone = phone
+                st.session_state.location = location
+                st.success("✅ Violation Detected!")
+    
+    # Show results OUTSIDE form (buttons can be here)
+    if st.session_state.processing_done:
+        st.markdown('<div class="violation-card">', unsafe_allow_html=True)
+        st.subheader("🎯 Detection Results")
         
-        if submitted:
-            if not phone or len(phone) != 10:
-                st.error("Please enter valid 10-digit mobile number")
-            elif not uploaded_file:
-                st.error("Please upload a video")
-            else:
-                # Simulate processing
-                with st.spinner("🔍 AI Processing... (~45 seconds)"):
-                    import time
-                    time.sleep(2)  # Simulate AI processing
-                    
-                    # Mock result
-                    st.success("✅ Violation Detected!")
-                    
-                    st.markdown('<div class="violation-card">', unsafe_allow_html=True)
-                    st.subheader("🎯 Detection Results")
-                    
-                    col1, col2 = st.columns([2, 1])
-                    with col1:
-                        st.write("**Violation Type:** Red Light Jump")
-                        st.write("**AI Confidence:** 94.5%")
-                        st.write("**License Plate:** TN-09-BZ-1234")
-                        st.write("**Plate Confidence:** 89.2%")
-                    
-                    with col2:
-                        st.metric("Fine Amount", "₹1,000")
-                        st.metric("Your Reward", "₹100", delta="10%")
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    # Generate challan button
-                    if st.button("📄 Generate E-Challan", type="primary"):
-                        st.balloons()
-                        st.markdown('<div class="success-card">', unsafe_allow_html=True)
-                        st.success("E-Challan Generated!")
-                        st.write(f"**Challan ID:** TN{datetime.now().strftime('%Y%m%d')}1234")
-                        st.write("SMS sent to vehicle owner")
-                        st.info("🎉 ₹100 reward will be credited to your FASTag in 24 hours!")
-                        st.markdown('</div>', unsafe_allow_html=True)
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.write("**Violation Type:** Red Light Jump")
+            st.write("**AI Confidence:** 94.5%")
+            st.write("**License Plate:** TN-09-BZ-1234")
+            st.write("**Plate Confidence:** 89.2%")
+        
+        with col2:
+            st.metric("Fine Amount", "₹1,000")
+            st.metric("Your Reward", "₹100", delta="10%")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Generate challan button OUTSIDE form (this is OK)
+        if st.button("📄 Generate E-Challan", type="primary"):
+            st.session_state.challan_generated = True
+    
+    # Show challan OUTSIDE form
+    if st.session_state.challan_generated:
+        st.balloons()
+        st.markdown('<div class="success-card">', unsafe_allow_html=True)
+        st.success("E-Challan Generated!")
+        st.write(f"**Challan ID:** TN{datetime.now().strftime('%Y%m%d')}1234")
+        st.write("SMS sent to vehicle owner")
+        st.info("🎉 ₹100 reward will be credited to your FASTag in 24 hours!")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 with tab2:
     st.header("📊 Enforcement Dashboard")
